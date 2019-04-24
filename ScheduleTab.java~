@@ -1,0 +1,203 @@
+/** ScheduleTab.java
+  * Creates a panel that lets the user see their schedule.
+  * Includes a SemesterPanel to set semesters.
+  * 
+  * Primarily developed by Jeanette Yue.
+  * 
+  * CS 230 Fall 2014 Final Project
+  * 
+  * @author Jeanette Yue, Sam Mincheva
+  */
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.util.*;
+import java.io.*;
+
+public class ScheduleTab extends JPanel {
+  
+  private Schedule schedule;
+  private JButton exportButton, displayButton;
+  private JTextField importField, exportField;
+  private JLabel[][] courseLabels;
+  private JPanel displayPanel, ioPanel, scheduleGrid;
+  
+  private JPanel semesterPanel;
+  
+  private final Color backgroundColor1 = new Color(250, 250, 255);
+  private final Color backgroundColor2 = new Color(250, 255, 255);
+  private final Color backgroundColor3 = new Color(250, 255, 250);
+  private final Color takenSlotColor = new Color(164, 217, 212);
+  private final Color emptySlotColor = new Color(230, 230, 230);
+  private final Color semesterSlotColor = new Color(250, 216, 198);
+  private final Color freeSlotColor = new Color(212, 247, 212);
+  private final Color foregroundColor1 = new Color(24, 87, 82);
+  private final Color foregroundColor2 = new Color(141, 112, 39);
+  private final Color foregroundColor3 = new Color(130, 36, 58);
+  
+  private final Font labelFontSmall = new Font("Lucida Console", Font.BOLD, 14);
+  private final Font labelFontBig = new Font("Lucida Console", Font.BOLD, 18);
+  private final Font labelFontHuge = new Font("Lucida Console", Font.BOLD, 24);
+  
+  
+  //-------------------------------------------------------------------------------
+  /** Creates a new ScheduleTab.
+    */
+  public ScheduleTab(Schedule s) {
+    
+    schedule = s;
+    
+    //-----------------------------------------------------------------------------
+    //Sets up semester panel
+    semesterPanel = new SemesterPanel(s);
+    semesterPanel.setMaximumSize(new Dimension(950, 200));
+    
+    
+    //Sets up display schedule button
+    displayButton = new JButton("Show Schedule");
+    displayButton.setFont(labelFontHuge);
+    displayButton.setAlignmentX(CENTER_ALIGNMENT);
+    displayButton.setForeground(foregroundColor1);
+    displayButton.addActionListener(new ButtonListener());
+    
+    //Sets up schedule grid
+    scheduleGrid = new JPanel();
+    scheduleGrid.setLayout(new GridLayout(6, 8));
+    scheduleGrid.setPreferredSize(new Dimension(950,200));
+    scheduleGrid.setBackground(backgroundColor1);
+    courseLabels = new JLabel[8][6];
+    
+    for (int i = 0; i < courseLabels.length; i++) {
+      for (int j = 0; j < courseLabels[0].length; j++) {
+        courseLabels[i][j] = new JLabel("");
+        courseLabels[i][j].setFont(labelFontSmall);
+        courseLabels[i][j].setBorder(BorderFactory.createEtchedBorder(1));
+        scheduleGrid.add(courseLabels[i][j]);
+      }
+    }
+    
+    //Adds everything to the display panel
+    displayPanel = new JPanel();
+    displayPanel.setLayout(new BoxLayout(displayPanel, BoxLayout.Y_AXIS));
+    displayPanel.add(semesterPanel);
+    displayPanel.add(Box.createRigidArea(new Dimension(900, 40)));
+    displayPanel.add(displayButton);
+    displayPanel.add(Box.createRigidArea(new Dimension(900, 20)));
+    displayPanel.add(scheduleGrid);
+    displayPanel.add(Box.createRigidArea(new Dimension(900, 30)));
+    displayPanel.setBackground(backgroundColor2);
+    
+    //-----------------------------------------------------------------------------
+    //Creates ioPanel
+    exportButton = new JButton("Export");
+    exportButton.setFont(labelFontBig);
+    exportField = new JTextField("MySchedule",10);
+    exportButton.addActionListener(new ButtonListener());
+    
+    ioPanel = new JPanel();
+    ioPanel.add(exportButton);
+    ioPanel.add(exportField);
+    ioPanel.setBackground(backgroundColor2);
+    
+    //-----------------------------------------------------------------------------
+    //sets the layout and adds panels
+    setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+    add(displayPanel);
+    add(ioPanel);
+    setBackground(backgroundColor2);
+  }
+  
+  
+  //-------------------------------------------------------------------------------
+  /** Private ButtonListener class.
+    */
+  private class ButtonListener implements ActionListener{
+
+    //-----------------------------------------------------------------------------
+    /** Defines actionPerformed() in ActionListener.
+      */
+    public void actionPerformed(ActionEvent e){
+      Object source = e.getSource();
+      
+      if (source == displayButton) { //if display button, redisplay schedule
+        if (schedule.getCourses().isEmpty()) {
+          JOptionPane.showMessageDialog(null, "Please enter courses!");
+        } else if (schedule.getSemesters().isEmpty()) {
+          JOptionPane.showMessageDialog(null, "Please set semesters!");
+        }
+        else {
+          try {
+            schedule.fillSchedule();
+          } catch (ImpossibleScheduleException exc) {
+            JOptionPane.showMessageDialog(null, "There weren't enough semesters!");
+          }
+          //Gets schedule info
+          int semesterCount = schedule.getNumberOfSemesters();
+          System.out.println(schedule);
+          LinkedList<Semester> semesters = schedule.getSemesters();
+          displayPanel.remove(scheduleGrid);
+          scheduleGrid = new JPanel();
+          scheduleGrid.setBackground(backgroundColor1);
+          scheduleGrid.setPreferredSize(new Dimension(semesterCount*20, 7*10));
+          scheduleGrid.setLayout(new GridLayout(7, semesterCount));
+          courseLabels = new JLabel[semesterCount][7];
+          
+          //sets all the labels in the grid
+          for (int i = 0; i < semesterCount; i++) {
+            LinkedList<Course> courses = semesters.get(i).getCourses();
+            Semester semester = semesters.get(i);
+            courseLabels[i][0] = new JLabel(semesters.get(i).getName());
+            courseLabels[i][0].setBorder(BorderFactory.createEtchedBorder(1));
+            courseLabels[i][0].setFont(labelFontSmall);
+            courseLabels[i][0].setBackground(semesterSlotColor);
+            courseLabels[i][0].setOpaque(true);
+            
+            for (int j = 1; j <= courses.size(); j++){
+              courseLabels[i][j] = new JLabel(courses.get(j-1).getName());
+              courseLabels[i][j].setFont(labelFontSmall);
+              courseLabels[i][j].setBorder(BorderFactory.createEtchedBorder(1));
+              courseLabels[i][j].setPreferredSize(new Dimension(20, 10));
+              courseLabels[i][j].setOpaque(true);
+              courseLabels[i][j].setBackground(takenSlotColor);
+            }
+            
+            for (int j = courses.size() + 1; j <= semester.getCapacity(); j++) {
+              courseLabels[i][j] = new JLabel("");
+              courseLabels[i][j].setFont(labelFontSmall);
+              courseLabels[i][j].setPreferredSize(new Dimension(20, 10));
+              courseLabels[i][j].setBorder(BorderFactory.createEtchedBorder(1));
+              courseLabels[i][j].setOpaque(true);
+              courseLabels[i][j].setBackground(freeSlotColor);
+            }
+            
+            for (int j = semester.getCapacity() + 1; j < 7; j++) {
+              courseLabels[i][j] = new JLabel("");
+              courseLabels[i][j].setFont(labelFontSmall);
+              courseLabels[i][j].setPreferredSize(new Dimension(20, 10));
+              courseLabels[i][j].setBorder(BorderFactory.createEtchedBorder(1));
+              courseLabels[i][j].setOpaque(true);
+              courseLabels[i][j].setBackground(emptySlotColor);
+            }
+          }
+          for (int i = 0; i < 7; i++) {
+            for (int j = 0; j < semesterCount; j++) {
+              scheduleGrid.add(courseLabels[j][i]);
+            }
+          }
+          displayPanel.add(scheduleGrid);
+          displayPanel.updateUI();
+        }
+      }
+      
+      if (source == exportButton) { //if export button, exprot schedule
+        try {
+          schedule.exportSchedule(exportField.getText() + ".txt");
+          JOptionPane.showMessageDialog(null, "Successfuly exported course list to " + exportField.getText() + ".txt.");
+        } catch (IOException exception) {
+          JOptionPane.showMessageDialog(null, "Something went wrong. Unable to export to " + exportField.getText() + ".txt.");
+        }
+      }
+    }
+  }
+}

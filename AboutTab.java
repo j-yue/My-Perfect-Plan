@@ -1,0 +1,200 @@
+/** AboutTab.java
+  * Creates a panel with information about the My Perfect Plan application.
+  * 
+  * Developed by Sam Mincheva and Jeanette Yue .
+  * 
+  * CS 230 Fall 2014 Final Project
+  * 
+  * @author Jeanette Yue, Sam Mincheva
+  */
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
+import java.io.*;
+
+public class AboutTab extends JPanel {
+  
+  private JPanel aboutPanel, instructionPanel, tipsPanel;
+  private JPanel titlePanel, leftPanel, bodyPanel;
+  private JLabel titleLabel, aboutLabel, instructionLabel, tipsLabel;
+  private JTextArea aboutText, instructionText, tipsText;
+  private String aboutString, instructionString, tipsString;
+  private BackgroundPanel wellesley;
+  
+  //-------------------------------------------------------------------------------
+  private final Color backgroundColor1 = new Color(250, 250, 255, 200);
+  private final Color backgroundColor2 = new Color(250, 255, 255, 200);
+  
+  private final Color foregroundColor1 = new Color(24, 87, 82);
+  private final Color foregroundColor2 = new Color(41, 52, 9);
+  private final Color foregroundColor3 = new Color(90, 36, 58);
+  private final Font labelFontSmall = new Font("Lucida Console", Font.BOLD, 15);
+  private final Font labelFontBig = new Font("Lucida Console", Font.BOLD, 24);
+  private final Font labelFontHuge = new Font("Lucida Console", Font.BOLD, 88);
+  
+  //-------------------------------------------------------------------------------
+  /** Creates a new AboutTab.
+    */
+  public AboutTab() {
+    
+    //-----------------------------------------------------------------------------
+    //Creates the title panel
+    titleLabel = new JLabel("My Perfect Plan");
+    titleLabel.setForeground(foregroundColor1);
+    titleLabel.setFont(labelFontHuge);
+    
+    
+    titlePanel = new JPanel();
+    titlePanel.setBackground(backgroundColor1);
+    titlePanel.add(titleLabel);
+    
+    
+    //-----------------------------------------------------------------------------
+    //Creates the about panel
+    aboutString = "My Perfect Plan is an easy-to-use, hard-to-forget " +
+      "application that helps you make sure you can graduate on time!\nEnter " +
+      "your remaining semesters at Wellesley, tell us the courses you need to " +
+      "take, and watch the magic (well-designed algorithm) happen!";
+    
+    //Creates text area
+    aboutText = new JTextArea(aboutString);
+    aboutText.setWrapStyleWord(true);
+    aboutText.setOpaque(false);
+    aboutText.setEditable(false);
+    aboutText.setLineWrap(true);
+    aboutText.setFont(labelFontSmall);
+    aboutText.setForeground(foregroundColor2);
+    
+    //Creates label
+    aboutLabel = new JLabel("About");
+    aboutLabel.setAlignmentX(CENTER_ALIGNMENT);
+    aboutLabel.setOpaque(false);
+    aboutLabel.setFont(labelFontBig);
+    aboutLabel.setForeground(foregroundColor3);
+    
+    //Creates panel and adds text area and label to it
+    aboutPanel = new JPanel();
+    aboutPanel.setPreferredSize(new Dimension(350, 150));
+    aboutPanel.setLayout(new BoxLayout(aboutPanel, BoxLayout.Y_AXIS));
+    aboutPanel.add(aboutLabel);
+    aboutPanel.add(aboutText);
+    aboutPanel.setBackground(backgroundColor2);
+    aboutPanel.setBorder(BorderFactory.createLineBorder(backgroundColor2, 3));
+    
+    
+    //-----------------------------------------------------------------------------
+    //Creates the instructions panel
+    instructionString = "There are three easy steps for using My Perfect " +
+      "Plan: \n\n 1. Under \"Add Courses\", enter the courses you plan to take." +
+      " \n\n 2. When you're done adding you courses, head over to the " +
+      "\"Schedule\" tab. There, you will enter the first and last of your " +
+      "remaining semesters at Wellesley. You'll also have the option to set the " +
+      "number of courses you want to take each semester!\n\n 3. When you're " +
+      "done setting your semesters, click on \"Show Schedule\" and viola!";
+    
+    //Creates text area
+    instructionText = new JTextArea(instructionString);
+    instructionText.setWrapStyleWord(true);
+    instructionText.setOpaque(false);
+    instructionText.setEditable(false);
+    instructionText.setPreferredSize(new Dimension(350, 300));
+    instructionText.setLineWrap(true);
+    instructionText.setFont(labelFontSmall);
+    instructionText.setForeground(foregroundColor2);
+    
+    //Creates label
+    instructionLabel = new JLabel("Instructions");
+    instructionLabel.setPreferredSize(new Dimension(350, 50));
+    instructionLabel.setAlignmentX(CENTER_ALIGNMENT);
+    instructionLabel.setOpaque(false);
+    instructionLabel.setFont(labelFontBig);
+    instructionLabel.setForeground(foregroundColor3);
+    
+    //Creates panel and adds text area and label to it
+    instructionPanel = new JPanel();
+    instructionPanel.setPreferredSize(new Dimension(400, 300));
+    instructionPanel.setLayout(new BoxLayout(instructionPanel, BoxLayout.Y_AXIS));
+    instructionPanel.add(instructionLabel);
+    instructionPanel.add(instructionText);
+    instructionPanel.setBackground(backgroundColor2);    
+    instructionPanel.setBorder(BorderFactory.createLineBorder(backgroundColor2, 3));
+    
+    //-----------------------------------------------------------------------------
+    //creates the tips panel
+    tipsString = "-> Want to edit or delete a course?\n\t Select its name from " +
+      "the drop-down menu in the add tab, and make any changes you'd like.\n\n" +
+      "-> Going abroad?\n\tSimply set a semester's courseload to 0!\n\n-> " + 
+      "Currently taking a prereq for a future course?\n\t Don't include it in " +
+      "its list of prerequisite courses!\n\n-> Want to save your list of " +
+      "courses?\n\tYou can export it to a text file. Enter the file name and " +
+      "click \"Export\" in the bottom left corner of the add tab. When you want " +
+      "to come back to the list, you can import the file you saved into!\n\n" +
+      "-> Want to take a certain course in a specific future semester?\n\t" + 
+      "Decrease the number of courses in that semester by 1, and don't add that " +
+      "course to your list here.";
+    
+    //creates text area
+    tipsText = new JTextArea(tipsString);
+    tipsText.setWrapStyleWord(true);
+    tipsText.setOpaque(false);
+    tipsText.setEditable(false);
+    tipsText.setPreferredSize(new Dimension(200, 300));
+    tipsText.setLineWrap(true);
+    tipsText.setFont(labelFontSmall);
+    tipsText.setForeground(foregroundColor2);
+    
+    //creates label
+    tipsLabel = new JLabel("Tips and Tricks");
+    tipsLabel.setPreferredSize(new Dimension(350, 50));
+    tipsLabel.setAlignmentX(CENTER_ALIGNMENT);
+    tipsLabel.setOpaque(false);
+    tipsLabel.setFont(labelFontBig);
+    tipsLabel.setForeground(foregroundColor3);
+    
+    //creates panel and adds text area and label to it
+    tipsPanel = new JPanel();
+    tipsPanel.setPreferredSize(new Dimension(350, 500));
+    tipsPanel.setLayout(new BoxLayout(tipsPanel, BoxLayout.Y_AXIS));
+    tipsPanel.add(tipsLabel);
+    tipsPanel.add(tipsText);
+    tipsPanel.setBackground(backgroundColor2);    
+    tipsPanel.setBorder(BorderFactory.createLineBorder(backgroundColor1, 3));
+    
+    
+    //-----------------------------------------------------------------------------
+    //Organizes panels
+    leftPanel = new JPanel();
+    leftPanel.setOpaque(false);
+    leftPanel.add(aboutPanel);
+    leftPanel.add(Box.createRigidArea(new Dimension(350,40)));
+    leftPanel.add(instructionPanel);
+    leftPanel.setLayout(new BoxLayout(leftPanel, BoxLayout.Y_AXIS));
+    
+    bodyPanel = new JPanel();
+    bodyPanel.setOpaque(false);
+    bodyPanel.add(leftPanel);
+    bodyPanel.add(Box.createRigidArea(new Dimension(40,40)));
+    bodyPanel.add(tipsPanel);
+    bodyPanel.setLayout(new BoxLayout(bodyPanel, BoxLayout.X_AXIS));
+    
+    //-----------------------------------------------------------------------------
+    //Tries to add a Wellesley background; left blank if it doesn't work
+    try {
+      BufferedImage quad = ImageIO.read(new File("wellesley.jpg"));
+      wellesley = new BackgroundPanel(quad);
+    } catch (IOException e) {
+      wellesley = new BackgroundPanel();
+      wellesley.setBackground(new Color(240, 250, 250));
+    }
+    
+    //Sets dimensions and adds panels to the background panel
+    wellesley.setPreferredSize(new Dimension(950, 750));
+    wellesley.add(Box.createRigidArea(new Dimension(950, 5)));
+    wellesley.add(titlePanel);
+    wellesley.add(Box.createRigidArea(new Dimension(950, 25)));
+    wellesley.add(bodyPanel);
+    add(wellesley);
+  }
+}

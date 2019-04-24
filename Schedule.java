@@ -1,0 +1,524 @@
+/** Schedule.java
+  * Represents a schedule, including a list of courses to take, and semesters 
+  * remaining. Uses an AdjMatGraph<Course> to store course dependencies when
+  * distributing them throughout the semesters.
+  * 
+  * Developed by Sam Mincheva and Jeanette Yue.
+  * 
+  * CS 230 Fall 2014 Final Project
+  * 
+  * @author Jeanette Yue, Sam Mincheva
+  */
+
+import java.util.*; //for LinkedList
+import java.io.*;
+
+public class Schedule {
+  
+  private int numberOfSemesters; //number of semesters in schedule
+  private int distributedCourses; //keeps track of number of distributed courses
+  private LinkedList<Semester> semesters; //list of semesters
+  private LinkedList<Course> courses; //list of courses
+  private LinkedList<Course> availableCourses; //used when distrbuting courses
+  private AdjMatGraph<Course> dependencies; //stores course dependencies
+  
+  //-------------------------------------------------------------------------------
+  /** Initializes a new Schedule object, with no courses and semesters.
+    */
+  public Schedule() {
+    this.numberOfSemesters = 0;
+    this.distributedCourses = 0;
+    this.semesters = new LinkedList<Semester>();
+    this.courses = new LinkedList<Course>();
+    this.availableCourses = new LinkedList<Course>();
+    this.dependencies = new AdjMatGraph<Course>();
+  }
+  
+  //-------------------------------------------------------------------------------
+  /** Adds a course to the schedule, if no course with that name exists.
+    * 
+    * @param c Course object to be added
+    */
+  public void addCourse(Course c) {
+    if (!this.getCourseNames().contains(c.getName())) {
+      courses.add(c); //if the course is not in the list, adds it
+      Collections.sort(courses);
+    }
+  }
+  
+  //-------------------------------------------------------------------------------
+  /** Removes a course object from the schedule.
+    * 
+    * @param course the course to be removed
+    */
+  public void removeCourse(Course course) {
+    courses.remove(course); //removes course from list
+    for (Course c : courses) {
+      c.removePrerequisite(course);
+    }
+  }
+  
+  //-------------------------------------------------------------------------------
+  /** Removes the course with the specified name from the schedule.
+    * 
+    * @param courseName the name of the course to be removed
+    */
+  public void removeCourse(String courseName) {
+    Course course = findCourse(courseName); //finds course with that name
+    if (course != null) removeCourse(course); //removes course from list
+  }
+  
+  //-------------------------------------------------------------------------------
+  /** Retrieves the course with the specified name.
+    * Returns null if no such course exists.
+    * 
+    * @param name the name of the course
+    * @return the course with the given name
+    */
+  public Course findCourse(String name) {
+    for (int i = 0; i < courses.size(); i++) { //goes through all courses
+      Course c = courses.get(i);
+      if (c.getName().equals(name)) return c; //if name matches, returns course
+    }
+    return null; //if no such course found, returns null
+  }
+  
+  //-------------------------------------------------------------------------------
+  /** Changes a course from this schedule's list to the specified new course.
+    * 
+    * @param course the course to be changed
+    * @param name the new course name
+    * @param fall the new value for fall
+    * @param spring the new value for spring
+    * @param prereqs the new list of prerequisites
+    */
+  public void changeCourse(Course course, String name, boolean fall, 
+                           boolean spring, LinkedList<Course> prereqs) {
+    course.setName(name);
+    course.setIsFall(fall);
+    course.setIsSpring(spring);
+    course.setPrerequisites(prereqs);
+    Collections.sort(courses);
+  }  
+  
+  //-------------------------------------------------------------------------------
+  /** Return the number of semesters in the schedule.
+    * 
+    * @return number of semesters contained in this schedule
+    */
+  public int getNumberOfSemesters() {
+    return this.numberOfSemesters; //returns number of semesters
+  }
+  
+  //-------------------------------------------------------------------------------
+  /** Retrieves the semester with the specified name.
+    * Returns null if no such semester exists.
+    * 
+    * @param name the name of the semester
+    * @return the semester with the given name
+    */
+  public Semester findSemester(String name) {
+    for (int i = 0; i < semesters.size(); i++) { //goes through semesters
+      Semester s = semesters.get(i); 
+      if (s.getName().equals(name)) return s; //if name matches, returns semester
+    }
+    return null; //if no such semester, returns null
+  }
+  
+  //-------------------------------------------------------------------------------
+  /** Returns a list of all the semesters in the schedule
+    * 
+    * @return LinkedList<Semester> of the semesters contained in the schedule
+    */
+  public LinkedList<Semester> getSemesters(){
+    return semesters; //returns semesters
+  }
+  
+  //-------------------------------------------------------------------------------
+  /** Returns a list of courses added to the schedule.
+    * 
+    * @return LinkedList<Course> of all the courses added to the schedule
+    */
+  public LinkedList<Course> getCourses() {
+    return this.courses; //returns courses
+  }
+  
+  //-------------------------------------------------------------------------------
+  /** Distributes all the courses in this schedule throughout the available
+    * semesters.
+    * 
+    * @throws ImpossibleScheduleException if there are not enough course slots
+    */
+  public void fillSchedule() {
+    resetSchedule(); //empties all semesters and restores course dependencies
+    for (int i = 0; i < semesters.size() && distributedCourses <= courses.size(); i++) {
+      //while there are still empty semesters and undistributed courses
+      this.fillSemester(semesters.get(i)); //fills this semester
+    }
+    
+    //if there are any undistributed courses, throws ImpossibleScheduleException
+    if (distributedCourses < courses.size()) 
+      throw new ImpossibleScheduleException();
+  }
+  
+  //-------------------------------------------------------------------------------
+  /** Generates a list of courses between the specified start and end semester, and
+    * adds them to this schedule object's semesters.
+    * 
+    * @param start the starting semester
+    * @param end the ending semester
+    */
+  public void calculateSemesters(Semester start, Semester end) {
+    
+    this.resetSemesters(); //resets list of semesters and number of semesters to 0
+    this.setNumberOfSemesters(start, end); //calculates the number of semesters
+    
+    Semester current = start; //sets current semester to start semester
+    int year = start.getYear(); //sets current year to start year
+    boolean isFall = start.getIsFall(); //sets current season to start season
+    
+    semesters.add(current); //adds first semester
+    isFall = !isFall; //changes the season
+    
+    for (int i = 2; i <= numberOfSemesters; i++) { //goes through all semesters
+      if (!isFall) year++; //if it's spring, increments the year
+      current = new Semester(isFall, year); //creates current semester
+      semesters.add(current); //adds current semester
+      isFall = !isFall; //changes the season
+    }
+  }
+  
+  //-------------------------------------------------------------------------------
+  /** Imports a list of courses from a .txt file. 
+    * 
+    * @throws IOException if something goes wrong
+    * @param fileName the name of the .txt file to be imported
+    */
+  public void importCourses(String fileName) throws IOException {
+    Scanner scan = new Scanner(new File(fileName)); //scanner to read in file
+    while (scan.hasNextLine()) { //while there is still lines
+      String[] info = scan.nextLine().split("\t"); //splits by tab spaces
+      
+      try {
+        //creates a new course with the specified info
+        Course toAdd = new Course(info[0], info[1].equals("1"), info[2].equals("1"));
+        
+        for (int i = 3; i < info.length; i++) 
+          toAdd.addPrerequisiteName(info[i]); //adds any prereqs as strings
+        
+        this.addCourse(toAdd); //adds the course
+        
+      } catch (RuntimeException e) { //any sort of input format error
+      }
+    }
+    
+    this.setPrerequisitesFromNames(); //sets all courses' prereqs from their names
+    scan.close(); //closes scanner
+  }
+  
+  //-------------------------------------------------------------------------------
+  /** Exports the list of courses from the AddCoursesTab to a .txt file.
+    * 
+    * @throws IOException if something goes wrong
+    * @param fileName name used to create a .txt file with the saved course info
+    */
+  public void exportCourses(String fileName) throws IOException {
+    PrintWriter write = new PrintWriter(new File(fileName)); //writer
+    for (Course c : courses) { //for all courses
+      write.print(c.getName() + "\t"); //print name
+      write.print((c.getIsFall()) ? "1\t" : "0\t"); //print fall info
+      write.print((c.getIsSpring()) ? "1\t" : "0\t"); //print spring info
+      for (Course prereq : c.getPrerequisites()) {
+        write.print(prereq.getName() + "\t"); //print all prereqs
+      }
+      write.println(); //new line
+    }
+    write.close(); //close writer
+  }
+  
+  //-------------------------------------------------------------------------------
+  /** Exports the current schedule, by semesters, into a .txt file.
+    * 
+    * @throws IOException if something goes wrong
+    * @param fileName name used to create a .txt file with the saved schedule info
+    */
+  public void exportSchedule(String fileName) throws IOException {
+    PrintWriter write = new PrintWriter(new File(fileName)); //writer
+    write.print("Schedule:"); //title
+    for (Semester sem : semesters) {
+      write.println(sem.printSemester()); //print all semesters
+    }
+    write.close(); //close writer
+  }
+  
+  //-------------------------------------------------------------------------------
+  /** Retrieves the names all the courses added to the schedule.
+    * 
+    * @return Vector<String> of all the courses added ot the schedule
+    */
+  public Vector<String> getCourseNames() {
+    Vector<String> courseNames = new Vector<String>(); //new Vector
+    for (Course c : courses)
+      courseNames.add(c.getName()); //add all course names
+    return courseNames; //return Vector with names
+  }
+  
+  //-------------------------------------------------------------------------------
+  /** Returns a string representation of this schedule, by semester.
+    * 
+    * @return string representation of this schedule
+    */
+  public String toString() {
+    String s = "Semesters:\n"; 
+    for (int i = 0; i < semesters.size(); i++) 
+      s += semesters.get(i).printSemester() + "\n"; //all semesters
+    return s;
+  }
+  
+  //*******************************************************************************
+  
+  //-------------------------------------------------------------------------------
+  /** Goes through each course and sets its prerequisites to the courses with that
+    * name.
+    * Helper method for importCourses().
+    */
+  private void setPrerequisitesFromNames() {
+    for (Course c : courses) { //for each course
+      for (String s : c.getPrerequisiteNames()) { //for each prereq name
+        Course prereq = this.findCourse(s); //finds the course with that name
+        c.addPrerequisite(prereq); //adds it to the list of prereqs of that course
+      }
+    }
+  } 
+  
+  //-------------------------------------------------------------------------------
+  /** Empties the course lists of all semesters in the schedule, and restores the
+    * dependency graph.
+    * Helper method for fillSemester().
+    */
+  private void resetSchedule() {
+    for (Semester semester : semesters) semester.empty(); //empties all semesters
+    distributedCourses = 0; //sets number of distributed courses to 0
+    dependencies = new AdjMatGraph<Course>(); //creates new dependency graph
+    
+//    for (Course course : courses) { //for each course
+//      LinkedList<Course> prereqs = course.getPrerequisites(); //gets prereqs
+//      dependencies.addVertex(course); //adds the course to the graph
+//      for (Course prereq : prereqs) { //for each prereq
+//        dependencies.addVertex(prereq); //adds the prereq to the graph
+//        dependencies.addArc(prereq, course); //adds arc from prereq to course
+//      }
+//    }
+    for (Course course : courses) dependencies.addVertex(course);
+    
+    for (Course course : courses) {
+      LinkedList<Course> prereqs = course.getPrerequisites();
+      for (Course prereq : prereqs) {
+        dependencies.addArc(prereq, course);
+      }
+    }
+  } 
+  
+  //-------------------------------------------------------------------------------
+  /** Fills the specified semesters with as many courses as possible, given its
+    * courseload capacity.
+    * Helper method for fillSchedule().
+    * 
+    * @param semester the semester to be filled
+    */
+  private void fillSemester(Semester semester) {
+    this.getAvailableCourses(semester); //finds all available courses 
+    
+    //if the available courses are more than the course slots open
+    if (this.availableCourses.size() > semester.getCapacity()) {
+      fillWithDeepestCourses(semester); //fills with "deepest" courses first
+      fillWithWidestCourses(semester); //then "widest" courses
+      fillWithSingleSemesterCourses(semester); //then any single-semester courses
+    }
+    
+    //fills up any remaining course slots with any remaining courses
+    fillWithAnyAvailableCourses(semester);
+  }
+  
+  //-------------------------------------------------------------------------------
+  /** Finds all the courses that it is possible to take in the given semester.
+    * Helper method for fillSemester().
+    * 
+    * @semester the semester to find courses for
+    */
+  private void getAvailableCourses(Semester semester) {
+    boolean nextIsFall = semester.getIsFall(); //stores season value
+    LinkedList<Course> sources = dependencies.allSources(); //all source courses
+    Course currentCourse; //placeholder for course
+    
+    for (int i = sources.size() - 1; i >= 0; i--) { //for all sources
+      currentCourse = sources.get(i); //assigns current course
+      if ((nextIsFall && !currentCourse.getIsFall()) ||
+          (!nextIsFall && !currentCourse.getIsSpring()))
+        sources.remove(currentCourse); //removes courses not offered this season
+    }
+    availableCourses = sources; //assigns the available courses
+  }
+  
+  //-------------------------------------------------------------------------------
+  /** Fills the specified semester with the courses that have the longest chain of
+    * successors ("deepest").
+    * Helper method for fillSemester().
+    * 
+    * @param semester the semester to be filled
+    */
+  private void fillWithDeepestCourses(Semester semester) {
+    if (!semester.isFull()) { //only if semester isn't full already
+      int maxDepth = 0; //max depth so far is 0
+      int currentDepth = 0; //current depth is 0
+      Course currentCourse; //placeholder for course
+      
+      for (int i = availableCourses.size() - 1; i >= 0; i--) { //all courses
+        currentCourse = availableCourses.get(i); //assigns current course
+        currentDepth = dependencies.getDepth(currentCourse); //gets current depth
+        if (currentDepth > maxDepth) { //if current depth greater than max depth
+          maxDepth = currentDepth; //reassigns max depth
+        }
+      }
+      
+      if (maxDepth > 0) {
+        //while there are available courses and the semester isn't full
+        for (int i = availableCourses.size() - 1; i >= 0 && !semester.isFull(); i--) {
+          currentCourse = availableCourses.get(i); //assigns current course
+          currentDepth = dependencies.getDepth(currentCourse); //gets current depth
+          if (currentDepth >= maxDepth) {
+            fillCourseSlot(semester, currentCourse); //adds deepest courses
+          }
+        }
+      }
+    }
+  }
+  
+  //-------------------------------------------------------------------------------
+  /** Fills the specified semester with the courses that have the largest number of
+    * immediate successors ("widest").
+    * Helper method for fillSemester().
+    * 
+    * @param semester the semester to be filled
+    */
+  private void fillWithWidestCourses(Semester semester) {
+    if (!semester.isFull()) { //only if semester isn't full already
+      int maxBreadth = 0; //max breadth so far is 0
+      int currentBreadth = 0; //current breadth is 0
+      Course currentCourse; //placeholder for course
+      
+      for (int i = availableCourses.size() - 1; i >= 0; i--) { //all courses
+        currentCourse = availableCourses.get(i); //assigns current course
+        currentBreadth = dependencies.getBreadth(currentCourse); //gets breadth
+        if (currentBreadth > maxBreadth) //if current breadth greater than max
+          maxBreadth = currentBreadth; //reassigns max
+      }
+      
+      if (maxBreadth > 0) {
+        //while there are available courses and the semester isn't full
+        for (int i = availableCourses.size() - 1; i >= 0 && !semester.isFull(); i--) {
+          currentCourse = availableCourses.get(i); //assigns current course
+          currentBreadth = dependencies.getBreadth(currentCourse); //gets breadth
+          if (currentBreadth >= maxBreadth) {
+            fillCourseSlot(semester, currentCourse); //adds widest courses
+          }
+        }
+      }
+    }
+  }
+  
+  //-------------------------------------------------------------------------------
+  /** Fills the specified semester with the courses that are only offered in this
+    * semester (i.e., fall or spring).
+    * Helper method for fillSemester().
+    * 
+    * @param semester the semester to be filled
+    */
+  private void fillWithSingleSemesterCourses(Semester semester) {
+    Course currentCourse; //placeholder for course
+    
+    //while there are available courses and the semester isn't full
+    for (int i = availableCourses.size() - 1; i >= 0 && !semester.isFull(); i--) {
+      currentCourse = availableCourses.get(i); //assigns current course
+      
+      //checks if the course is only offered in this season
+      if ((semester.getIsFall() && 
+           (currentCourse.getIsFall() && !currentCourse.getIsSpring())) || 
+          (!semester.getIsFall() && 
+           (!currentCourse.getIsFall() && currentCourse.getIsSpring()))) {
+        fillCourseSlot(semester, currentCourse); //if so, adds it to semester
+      }
+    }
+  }
+  
+  //-------------------------------------------------------------------------------
+  /** Fills the specified semester with any available courses.
+    * Helper method for fillSemester().
+    * 
+    * @param semester the semester to be filled
+    */
+  private void fillWithAnyAvailableCourses(Semester semester) {
+    Course currentCourse; //placeholder for course
+    
+    //while there are available courses and the semester isn't full
+    while (!semester.isFull() && availableCourses.size() > 0) {
+      currentCourse = availableCourses.peek(); //peeks into list
+      fillCourseSlot(semester, currentCourse); //adds the peeked course
+    }
+  }
+  
+  //-------------------------------------------------------------------------------
+  /** Adds the given course to the specified semester, removing it from the list of
+    * available courses and from the dependency graph.
+    * Helper method for fillSemester().
+    * 
+    * @param semester the semester to be filled
+    */
+  private void fillCourseSlot(Semester semester, Course course) {
+    availableCourses.remove(course); //removes from list of available courses
+    dependencies.removeVertex(course); //removes from dependency graph
+    semester.addCourse(course); //adds to semester
+    distributedCourses++; //increments number of distributed courses
+  }
+  
+  
+  //-------------------------------------------------------------------------------
+  /** Resets the list of semesters in this schedule to an empty list, and set the
+    * number of semesters to 0.
+    * Helper method for calculateSemesters().
+    */  
+  private void resetSemesters(){
+    numberOfSemesters = 0; //sets number of semesters to 0
+    semesters = new LinkedList<Semester>(); //assigns semesters list to empty list
+  }
+  
+  //-------------------------------------------------------------------------------
+  /** Calculates the number of semesters between a starting semester and
+    * an ending semester. This will be the time period of the schedule.
+    * Helper method for calculateSemesters().
+    * 
+    * @param start the starting semester
+    * @param end the ending semester
+    * @return number of semesters contained in the period between
+    * starting and ending semesters
+    */
+  private void setNumberOfSemesters(Semester start, Semester end) {
+    
+    int first = start.getYear(); //gets start year
+    int last = end.getYear(); //gest end year
+    
+    boolean firstIsFall = start.getIsFall(); //gets start season
+    boolean lastIsFall = end.getIsFall(); //gest end season
+    
+    int numYears = last - first; //gets number of years
+    
+    if (firstIsFall == lastIsFall)  //if seasons are the same
+      numberOfSemesters = (numYears*2) + 1; //semesters are double the years + 1
+    
+    else if (firstIsFall)  //if first is fall, last is spring
+      numberOfSemesters = numYears*2; //semesters are double the years
+    
+    else  //if first is spring, last is fall
+      numberOfSemesters = (numYears+1)*2; //semesters are the years + 1 doubled
+  }
+}

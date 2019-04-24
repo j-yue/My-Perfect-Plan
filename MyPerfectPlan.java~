@@ -1,0 +1,26 @@
+import javax.swing.*;
+import java.awt.*;
+import java.io.*;
+
+public class MyPerfectPlan {
+  
+  public static void main (String[] args){
+    
+    JFrame frame = new JFrame("My Perfect Plan");
+    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+    frame.setVisible(true);
+    frame.setResizable(false);
+    frame.setSize(900, 750);
+    
+    Schedule schedule = new Schedule();
+    
+    JTabbedPane options = new JTabbedPane();
+    options.addTab("About", new AboutTab(schedule));
+    
+    options.addTab("Add Courses", new AddCoursesTab(schedule));
+
+    options.addTab("Schedule", new ScheduleTab(schedule));
+    
+    frame.getContentPane().add(options);
+  }
+}

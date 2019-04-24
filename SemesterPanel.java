@@ -1,0 +1,354 @@
+/** SemesterPanel.java
+  * Creates a panel that lets the user set the beginning and end semesters, view
+  * their list of semesters, and edit the number of courses offered in each one.
+  * 
+  * Primarily developed by Jeanette Yue.
+  * 
+  * CS 230 Fall 2014 Final Project
+  * 
+  * @author Jeanette Yue, Sam Mincheva
+  */
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.util.*;
+
+public class SemesterPanel extends JPanel {
+  
+  private JLabel startLabel, endLabel, semesterNameLabel, numberLabel, editTitleLabel, semesterTitleLabel;
+  private JButton setTimeButton, semesterEditButton;
+  
+  private JComboBox startSemesterBox, startYearBox, endSemesterBox, endYearBox;
+  private JPanel startPanel, endPanel, periodPanel, semesterPanel, semesterDisplay, editPanel, editSelectPanel;
+  private JComboBox semestersBox, numberOfClassesBox;
+  private JButton saveButton, cancelButton, selectButton;
+  private JPanel display, classPanel, savePanel, infoPanel, editSemesterPanel, editTitlePanel;
+  private JLabel[] semesterLabels;
+  private JScrollPane scroller;
+  
+  
+  //non GUI 
+  private Schedule schedule;
+  private int currentYear;
+  private String[] startSemesters, startYear, endSemesters, endYear;
+  private LinkedList<Semester> semesters = new LinkedList<Semester>();
+  private Semester editSemester;
+  private final int DEFAULT_YEARS = 8; 
+  
+  
+  //-------------------------------------------------------------------------------
+  private final Color backgroundColor1 = new Color(250, 250, 255, 200);
+  private final Color backgroundColor2 = new Color(250, 255, 255, 200);
+  private final Color backgroundColor3 = new Color(250, 255, 250, 200);
+  private final Color foregroundColor1 = new Color(24, 87, 82);
+  private final Color foregroundColor2 = new Color(141, 112, 39);
+  private final Color foregroundColor3 = new Color(130, 36, 58);
+  private final Font labelFontSmall = new Font("Lucida Console", Font.BOLD, 14);
+  private final Font labelFontBig = new Font("Lucida Console", Font.BOLD, 18);
+  
+
+  //-------------------------------------------------------------------------------
+  /** Creates a new SemesterPanel.
+    */
+  public SemesterPanel(Schedule s) {
+    
+    schedule = s;
+    
+    //Creates all panels
+    periodPanel = new JPanel();
+    semesterPanel = new JPanel();
+    startPanel = new JPanel();
+    endPanel = new JPanel();
+    semesterDisplay = new JPanel(); 
+    
+    //-----------------------------------------------------------------------------
+    //Creates the set time panels
+    currentYear = Calendar.getInstance().get(Calendar.YEAR);
+    
+    startSemesters = new String[] {"Fall" , "Spring" };
+    endSemesters = new String[] {"Fall" , "Spring" };
+    
+    startYear = new String[DEFAULT_YEARS];
+    endYear = new String[DEFAULT_YEARS];
+    
+    int tempYear = currentYear;
+    
+    for (int i = 0; i < DEFAULT_YEARS; i++){
+      startYear[i] = Integer.toString(tempYear);
+      endYear[i] = Integer.toString(tempYear);
+      tempYear++;
+    }
+    
+    startLabel = new JLabel("Starting:");
+    startLabel.setAlignmentX(CENTER_ALIGNMENT);
+    startLabel.setFont(labelFontBig);
+    startLabel.setForeground(foregroundColor3);
+    endLabel = new JLabel("Ending:");
+    endLabel.setAlignmentX(CENTER_ALIGNMENT);
+    endLabel.setFont(labelFontBig);
+    endLabel.setForeground(foregroundColor3);
+    
+    setTimeButton = new JButton("Set");
+    setTimeButton.setFont(labelFontBig);
+    setTimeButton.setAlignmentX(CENTER_ALIGNMENT);
+    
+    startSemesterBox = new JComboBox(startSemesters);
+    startSemesterBox.setFont(labelFontSmall);
+    startSemesterBox.setForeground(foregroundColor2);
+    
+    startYearBox = new JComboBox(startYear);
+    startYearBox.setFont(labelFontSmall);
+    startYearBox.setForeground(foregroundColor2);
+    
+    endSemesterBox = new JComboBox(endSemesters);
+    endSemesterBox.setFont(labelFontSmall);
+    endSemesterBox.setForeground(foregroundColor2);
+    
+    endYearBox = new JComboBox(endYear);
+    endYearBox.setFont(labelFontSmall);
+    endYearBox.setForeground(foregroundColor2);
+    
+    JPanel startBoxPanel = new JPanel();
+    startBoxPanel.setBackground(backgroundColor3);
+    startBoxPanel.add(startSemesterBox);
+    startBoxPanel.add(startYearBox);
+    startPanel.add(startLabel);
+    startPanel.add(startBoxPanel);
+    startPanel.setLayout(new BoxLayout(startPanel, BoxLayout.Y_AXIS));
+    startPanel.setBackground(backgroundColor3);
+    
+    JPanel endBoxPanel = new JPanel();
+    endBoxPanel.setBackground(backgroundColor3);
+    endBoxPanel.add(endSemesterBox);
+    endBoxPanel.add(endYearBox);
+    endPanel.add(endLabel);
+    endPanel.add(endBoxPanel);
+    endPanel.setLayout(new BoxLayout(endPanel, BoxLayout.Y_AXIS));
+    endPanel.setBackground(backgroundColor3);
+    
+    JLabel setTitleLabel = new JLabel("Set semesters:");
+    setTitleLabel.setPreferredSize(new Dimension(250, 50));
+    setTitleLabel.setAlignmentX(CENTER_ALIGNMENT);
+    setTitleLabel.setFont(labelFontBig);
+    setTitleLabel.setForeground(foregroundColor1);
+    
+    periodPanel.add(setTitleLabel);
+    periodPanel.add(startPanel);
+    periodPanel.add(endPanel);
+    periodPanel.add(setTimeButton);
+    periodPanel.setBorder(BorderFactory.createLineBorder(foregroundColor3, 1));
+    periodPanel.setLayout(new BoxLayout(periodPanel, BoxLayout.Y_AXIS));
+    periodPanel.setPreferredSize(new Dimension(250, 200));
+    periodPanel.setBackground(backgroundColor3);
+    
+    semesterDisplay.setMinimumSize(new Dimension(400,200));
+    semesterDisplay.setLayout(new BoxLayout(semesterDisplay, BoxLayout.Y_AXIS));
+    semesterDisplay.setBackground(backgroundColor1);
+    
+    semesterPanel.setLayout(new BoxLayout(semesterPanel, BoxLayout.X_AXIS));
+    semesterPanel.setBackground(backgroundColor3);
+    
+    setTimeButton.addActionListener(new ButtonListener());
+        setTimeButton.setForeground(foregroundColor3);
+    
+    //-----------------------------------------------------------------------------
+    //Creates the edit panel
+    editPanel = new JPanel();
+    
+    semestersBox = new JComboBox();
+    semestersBox.addItem("...       ");
+    selectButton = new JButton("Select");
+    semestersBox.setForeground(foregroundColor2);
+    semestersBox.setFont(labelFontSmall);
+    selectButton.addActionListener(new ButtonListener());
+    selectButton.setFont(labelFontSmall);
+    selectButton.setForeground(foregroundColor3);
+    
+    editSelectPanel = new JPanel();
+    editSelectPanel.setBackground(backgroundColor2);
+    editSelectPanel.add(semestersBox);
+    editSelectPanel.add(selectButton);
+    
+    semesterNameLabel = new JLabel();
+    semesterNameLabel.setAlignmentX(CENTER_ALIGNMENT);
+    semesterNameLabel.setFont(labelFontBig);
+    semesterNameLabel.setForeground(foregroundColor3);
+    
+    numberLabel = new JLabel("Number of courses:");
+    numberLabel.setFont(labelFontSmall);
+    numberLabel.setForeground(foregroundColor2);
+    numberOfClassesBox = new JComboBox(new String[]{"0", "1", "2", "3", "4", "5", "6"});
+    numberOfClassesBox.setFont(labelFontSmall);
+    numberOfClassesBox.setForeground(foregroundColor2);
+    infoPanel = new JPanel();
+    infoPanel.add(numberLabel);
+    infoPanel.add(numberOfClassesBox);
+    infoPanel.setBackground(backgroundColor2);
+    
+    saveButton = new JButton("Save");
+    saveButton.setFont(labelFontSmall);
+    saveButton.setForeground(foregroundColor3);
+    saveButton.addActionListener(new ButtonListener());
+    cancelButton = new JButton("Cancel");
+        cancelButton.setFont(labelFontSmall);
+    cancelButton.setForeground(foregroundColor3);
+    cancelButton.addActionListener(new ButtonListener());
+    
+    savePanel = new JPanel();
+    savePanel.setBackground(backgroundColor2);
+    savePanel.add(saveButton);
+    savePanel.add(cancelButton);
+    
+    editSemesterPanel = new JPanel();
+    editSemesterPanel.setBackground(backgroundColor2);
+    editSemesterPanel.add(semesterNameLabel);
+    editSemesterPanel.add(infoPanel);
+    editSemesterPanel.add(savePanel);
+    editSemesterPanel.setLayout(new BoxLayout(editSemesterPanel, BoxLayout.Y_AXIS));
+    editSemesterPanel.setVisible(false);
+    
+    editTitleLabel = new JLabel("Edit a semester:");
+    editTitleLabel.setPreferredSize(new Dimension(250, 50));
+    editTitleLabel.setAlignmentX(CENTER_ALIGNMENT);
+    editTitleLabel.setFont(labelFontBig);
+    editTitleLabel.setForeground(foregroundColor1);
+
+    editPanel.add(editTitleLabel);
+    editPanel.add(editSelectPanel);
+    editPanel.add(editSemesterPanel);
+    editPanel.setBackground(backgroundColor2);
+    editPanel.setBorder(BorderFactory.createLineBorder(foregroundColor1, 1));
+    editPanel.setLayout(new BoxLayout(editPanel, BoxLayout.Y_AXIS));
+    editPanel.setPreferredSize(new Dimension(250,200));
+    
+    
+    //-----------------------------------------------------------------------------
+    //setting up the scrollpane and scrollbar
+    scroller = new JScrollPane();
+    scroller.setPreferredSize(new Dimension(345, 165));
+    scroller.setViewportView(semesterDisplay);
+    scroller.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+    scroller.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+    
+    display = new JPanel();
+    display.setBackground(backgroundColor3);
+    display.setPreferredSize(new Dimension(350, 200));
+    semesterTitleLabel = new JLabel("Your semesters:");
+    semesterTitleLabel.setFont(labelFontBig);
+    display.add(semesterTitleLabel);
+    display.setBorder(BorderFactory.createLineBorder(foregroundColor2, 1));
+    display.add(scroller);
+    
+    //-----------------------------------------------------------------------------
+    //Sets up everything and fixes the layout
+    semesterPanel.add(display);
+    semesterPanel.add(Box.createRigidArea(new Dimension(10, 200)));
+    semesterPanel.add(periodPanel);
+    semesterPanel.add(Box.createRigidArea(new Dimension(10, 200)));
+    semesterPanel.add(editPanel);
+    add(semesterPanel);
+    setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
+  }
+  
+  //-------------------------------------------------------------------------------
+  /** Resets the semester display.
+    */
+  private void redisplay() {
+    semesterDisplay.removeAll();
+    for (int i = 0; i < semesterLabels.length ; i++){
+      semesterLabels[i] = new JLabel(semesters.get(i).toString());
+      semesterDisplay.add(semesterLabels[i]);
+      semesterLabels[i].setForeground(foregroundColor3);
+      semesterLabels[i].setBackground(backgroundColor1);
+      semesterLabels[i].setFont(labelFontBig);
+    }
+  }
+  
+  //-------------------------------------------------------------------------------
+  /** Resets the edit panel.
+    */
+  private void resetEditPanel() {
+    editSelectPanel.setVisible(true);
+    editSemesterPanel.setVisible(false);
+    semestersBox.setSelectedIndex(0);
+    semesterNameLabel.setText("");
+  }
+  
+
+  //-------------------------------------------------------------------------------
+  /** Private ButtonListener class.
+    */
+  private class ButtonListener implements ActionListener{
+
+    //-----------------------------------------------------------------------------
+    /** Defines actionPerformed() in ActionListener.
+      */
+    public void actionPerformed(ActionEvent e){
+      Object source = e.getSource();
+      
+      if (source == setTimeButton) {
+        semesterDisplay.removeAll();
+        
+        int startingYear = Integer.parseInt(startYear[startYearBox.getSelectedIndex()]);
+        int endingYear = Integer.parseInt(endYear[endYearBox.getSelectedIndex()]);
+        
+        String starting = startSemesters[startSemesterBox.getSelectedIndex()];
+        String ending = endSemesters[endSemesterBox.getSelectedIndex()];
+        
+        if ((startingYear < endingYear) || ((startingYear == endingYear) && 
+                                            (starting.equals(ending) || 
+                                             starting.equals("Spring")))) {
+          
+          Semester first = new Semester(starting.equals("Fall"), startingYear);
+          Semester last = new Semester(ending.equals("Fall"), endingYear);
+          
+          schedule.calculateSemesters(first, last);
+          
+          semesterLabels = new JLabel[schedule.getNumberOfSemesters()];
+          semesters = schedule.getSemesters();
+          
+          for (int i = 0; i < semesterLabels.length ; i++){
+            semesterLabels[i] = new JLabel(semesters.get(i).toString());
+            semesterLabels[i].setForeground(foregroundColor3);
+            semesterLabels[i].setBackground(backgroundColor1);
+            semesterLabels[i].setFont(labelFontBig);
+            semesterDisplay.add(semesterLabels[i]);
+          }
+          
+          semesterDisplay.updateUI();
+          semestersBox.removeAllItems();
+          semestersBox.addItem("...");
+          for (Semester s : semesters) semestersBox.addItem(s.getName());
+          resetEditPanel();
+        }
+        else JOptionPane.showMessageDialog(null, "You need at least one semester!");
+        
+      }
+      if (source == selectButton) {
+        if (semestersBox.getItemCount() > 1) {
+          editSelectPanel.setVisible(false);
+          editSemesterPanel.setVisible(true);
+          String semesterName = (String)semestersBox.getSelectedItem();
+          semesterNameLabel.setText(semesterName);
+          editSemester = schedule.findSemester(semesterName);
+          numberOfClassesBox.setSelectedIndex(editSemester.getCapacity());
+        }
+      }
+      if (source == saveButton){
+        int courses = numberOfClassesBox.getSelectedIndex();
+        editSemester.setCapacity(courses);
+        semesterDisplay.updateUI();
+        redisplay();
+        resetEditPanel();
+      }
+      if (source == cancelButton) {
+        resetEditPanel();
+      }
+    }
+  }
+}
+
+
+
+
